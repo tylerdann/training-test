@@ -13,26 +13,49 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyr)
 ```
-
+Read in data from the 
+[KNB]("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1")
 ```{r}
 catch_df <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1", method = "libcurl"),
                     stringsAsFactors = FALSE)
-head(catch_df)
 ```
 
-```{r}
-unique(catch_df$notesRegCode)
-```
-
+In this chunk I selected the columns I wanted, gathered the data from wide to long format and renamed a column.
 ```{r}
 catch_df <- catch_df %>% 
-  select(Region, Year, Chinook, Sockeye, Coho, Pink, Chum)
+  select(Region, Year, Chinook, Sockeye, Coho, Pink, Chum) %>% 
+  gather(key = Species, value = Catch, -Region, -Year) %>% 
+  rename(Catch_thousands = Catch)
+```
 
-head(catch_df)
+Found a typo in the original data, corrected it, converted 'catch_thousands' column to numeric, and created a new column with units # of fish.
+```{r}
+catch_df <- catch_df %>% 
+  mutate(Catch_thousands = ifelse(Catch_thousands == "I", 1, Catch_thousands)) %>% 
+  mutate(Catch_thousands = as.integer(Catch_thousands)) %>% 
+  mutate(catch = Catch_thousands * 1000) %>% 
+  mutate(catch = Catch_thousands*1000)
+
+head(catch_df, 30)
+```
+
+# Analysis
+
+```{r}
+catch_df %>% 
+  group_by(Species, Year) %>% 
+  summarize(mean_catch = mean(catch), num_obs = n())
 ```
 
 
+```{r}
+catch_df %>% 
+  filter(Species == "Chinook") %>% 
+  group_by(Region) %>% 
+  summarise(mean_catch = mean(catch)) %>% 
+  arrange(desc(mean_catch))
 
+```
 
 
 
